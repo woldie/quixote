@@ -50,6 +50,16 @@ var CLIP_RECT_PATTERN = /rect[\s]*\([\s]*([^\s,]+)[\s,]+([^\s,]+)[\s,]+([^\s,]+)
 var ClipStyle;
 
 ClipStyle = {
+	// **
+	// * Compute the normalized edges of the domElement's clip rectangle in CSS pixel units
+	// *
+	// * <p>The clip rectangle is relative to the top-left of the domElement's bounding client rectangle
+	// *
+	// * @param {Window} parentWindow window that domElement belongs to
+	// * @param {(Element|Node)} domElement the element to compute the normalized clip rectangle for
+	// * @returns {{top: number, bottom: number, height: number, left: number, right: number, width: number}} clip
+	// * rectangle in CSS pixel units, relative to the top-left of domElement's bounding client rect
+	// */
 	normalize : function normalize(parentWindow, domElement) {
 		var clipStyle = StyleUtil.getRawCssStyle(parentWindow, domElement, "clip");
 

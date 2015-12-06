@@ -8,7 +8,7 @@ var RelativePosition = require("./relative_position.js");
 var PositionDescriptor = require("./position_descriptor.js");
 var ElementSize = require("./element_size.js");
 var StyleUtil = require("../util/style_util.js");
-var ClipStyle = require("../normalize/clip-style.js");
+var ClipStyle = require("../normalize/clip_style.js");
 
 var TOP = "top";
 var RIGHT = "right";
