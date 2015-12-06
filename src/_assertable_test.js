@@ -141,7 +141,7 @@ describe("Assertable abstract base class", function() {
 				"clip: rect(5px, 120px, 45px, 20px)"
 			].join(";"));
 
-			var ClipNotAppliedException = require("./descriptors/element_clip_edge").ClipNotAppliedException;
+			var ClipNotAppliedException = require("./descriptors/element_visible_edge").ClipNotAppliedException;
 			assert.exception(
 				function() {
 					element.assert({
@@ -166,7 +166,7 @@ describe("Assertable abstract base class", function() {
 				"clip: auto"
 			].join(";"));
 
-			var ClipNotAppliedException = require("./descriptors/element_clip_edge").ClipNotAppliedException;
+			var ClipNotAppliedException = require("./descriptors/element_visible_edge").ClipNotAppliedException;
 			assert.exception(
 				function() {
 					element.assert({

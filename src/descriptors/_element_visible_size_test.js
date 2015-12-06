@@ -5,8 +5,8 @@ var assert = require("../util/assert.js");
 var reset = require("../__reset.js");
 var quixote = require("../quixote.js");
 var SizeDescriptor = require("./size_descriptor.js");
-var ElementClipSize = require("./element_clip_size.js");
-var ElementClipEdge = require("./element_clip_edge.js");
+var ElementClipSize = require("./element_visible_size.js");
+var ElementClipEdge = require("./element_visible_edge.js");
 var Size = require("../values/size.js");
 
 describe("ElementClipSize", function() {

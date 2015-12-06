@@ -3,8 +3,8 @@
 
 var ensure = require("./util/ensure.js");
 var ElementEdge = require("./descriptors/element_edge.js");
-var ElementClipEdge = require("./descriptors/element_clip_edge.js");
-var ElementClipSize = require("./descriptors/element_clip_size.js");
+var ElementClipEdge = require("./descriptors/element_visible_edge.js");
+var ElementClipSize = require("./descriptors/element_visible_size.js");
 var Center = require("./descriptors/center.js");
 var ElementSize = require("./descriptors/element_size.js");
 var Assertable = require("./assertable.js");
@@ -54,17 +54,7 @@ Me.prototype.getRawStyle = function getRawStyle(styleName) {
 Me.prototype.getRawPosition = function getRawPosition() {
 	ensure.signature(arguments, []);
 
-	// WORKAROUND IE 8: No TextRectangle.height or .width
-	var rect = this._domElement.getBoundingClientRect();
-	return {
-		left: rect.left,
-		right: rect.right,
-		width: rect.width !== undefined ? rect.width : rect.right - rect.left,
-
-		top: rect.top,
-		bottom: rect.bottom,
-		height: rect.height !== undefined ? rect.height : rect.bottom - rect.top
-	};
+	return StyleUtil.getRawBoundingRect(this._domElement);
 };
 
 Me.prototype.toDomElement = function toDomElement() {

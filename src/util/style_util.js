@@ -81,6 +81,27 @@ StyleUtil = {
 	},
 
 	// **
+	// * Get the bounding client rect for domElement
+	// *
+	// * @param {(Element|Node)} domElement
+	// * @return {{top: number, bottom: number, left: number, right: number, width: number, height: number}} bounding rect info
+	// */
+	getRawBoundingRect: function(domElement) {
+		// WORKAROUND IE 8: No TextRectangle.height or .width
+		var rect = domElement.getBoundingClientRect();
+		return {
+			left: rect.left,
+			right: rect.right,
+			width: rect.width !== undefined ? rect.width : rect.right - rect.left,
+
+			top: rect.top,
+			bottom: rect.bottom,
+			height: rect.height !== undefined ? rect.height : rect.bottom - rect.top
+		};
+
+	},
+
+	// **
 	// * Compute the length in CSS pixels for lengthExpr in the context of domElement.
 	// *
 	// * <p>Relative or absolute CSS units are computed as CSS pixels in the context of an element's ancestry to the
