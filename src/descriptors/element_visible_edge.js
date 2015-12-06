@@ -8,6 +8,7 @@ var RelativePosition = require("./relative_position.js");
 var PositionDescriptor = require("./position_descriptor.js");
 var ElementSize = require("./element_size.js");
 var StyleUtil = require("../util/style_util.js");
+var ClipStyle = require("../normalize/clip-style.js");
 
 var TOP = "top";
 var RIGHT = "right";
@@ -61,15 +62,11 @@ function factoryFn(position) {
 	};
 }
 
-var UNSET_CLIP_STYLES = [ "", "auto", "unset", "initial" ];
-var CLIP_RECT_PATTERN = /rect[\s]*\([\s]*([^\s,]+)[\s,]+([^\s,]+)[\s,]+([^\s,]+)[\s,]+([^\s,]+)[\s]*\)/;
-
 ElementClipEdge.prototype.getRawClipPosition = function getRawClipPosition() {
 	ensure.signature(arguments, []);
 
 	var domElement = this._element.toDomElement();
-	var clipRect = normalizedClip(domElement);
-
+	var clipRect = ClipStyle.normalize(this._element.frame.toDomElement().contentWindow, domElement);
 	var boundingRect = StyleUtil.getRawBoundingRect(domElement);
 
 	var visibleRect = {
@@ -84,48 +81,6 @@ ElementClipEdge.prototype.getRawClipPosition = function getRawClipPosition() {
 	visibleRect.height = visibleRect.bottom - visibleRect.top;
 
 	return visibleRect;
-};
-
-ElementClipEdge.prototype.computeClipTopPxHeight = function computeClipTopPxHeight(lengthExpr) {
-	if(lengthExpr === "auto") {
-		return 0;
-	}
-
-	return StyleUtil.computeCssPxForLengthInElement(this._element.toDomElement(), lengthExpr);
-};
-
-ElementClipEdge.prototype.computeClipRightPxWidth = function computeClipRightPxWidth(lengthExpr) {
-	var domElement = this._element.toDomElement();
-
-	if(lengthExpr === "auto") {
-		// "auto" for clip rect's right component will be the width of the element, enclosing the borders but not the
-		// margins.  offsetWidth gives us this value
-
-		return domElement.offsetWidth;
-	}
-
-	return StyleUtil.computeCssPxForLengthInElement(domElement, lengthExpr);
-};
-
-ElementClipEdge.prototype.computeClipBottomPxHeight = function computeClipBottomPxHeight(lengthExpr) {
-	var domElement = this._element.toDomElement();
-
-	if(lengthExpr === "auto") {
-		// "auto" for clip rect's bottom component will be the height of the element, enclosing the borders but not the
-		// margins.  offsetHeight gives us this value
-
-		return domElement.offsetHeight;
-	}
-
-	return StyleUtil.computeCssPxForLengthInElement(domElement, lengthExpr);
-};
-
-ElementClipEdge.prototype.computeClipLeftPxWidth = function computeClipLeftPxWidth(lengthExpr) {
-	if(lengthExpr === "auto") {
-		return 0;
-	}
-
-	return StyleUtil.computeCssPxForLengthInElement(this._element.toDomElement(), lengthExpr);
 };
 
 // default module export
