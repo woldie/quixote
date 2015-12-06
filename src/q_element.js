@@ -2,13 +2,13 @@
 "use strict";
 
 var ensure = require("./util/ensure.js");
-var camelcase = require("../vendor/camelcase-1.0.1-modified.js");
 var ElementEdge = require("./descriptors/element_edge.js");
 var ElementClipEdge = require("./descriptors/element_clip_edge.js");
 var ElementClipSize = require("./descriptors/element_clip_size.js");
 var Center = require("./descriptors/center.js");
 var ElementSize = require("./descriptors/element_size.js");
 var Assertable = require("./assertable.js");
+var StyleUtil = require("./util/style_util.js");
 
 var Me = module.exports = function QElement(domElement, frame, nickname) {
 	var QFrame = require("./q_frame.js");    // break circular dependency
@@ -47,21 +47,8 @@ Assertable.extend(Me);
 Me.prototype.getRawStyle = function getRawStyle(styleName) {
 	ensure.signature(arguments, [ String ]);
 
-	var styles;
-	var result;
-
-	// WORKAROUND IE 8: no getComputedStyle()
-	if (window.getComputedStyle) {
-		// WORKAROUND Firefox 40.0.3: must use frame's contentWindow (ref https://bugzilla.mozilla.org/show_bug.cgi?id=1204062)
-		styles = this.frame.toDomElement().contentWindow.getComputedStyle(this._domElement);
-		result = styles.getPropertyValue(styleName);
-	}
-	else {
-		styles = this._domElement.currentStyle;
-		result = styles[camelcase(styleName)];
-	}
-	if (result === null || result === undefined) result = "";
-	return result;
+	// WORKAROUND Firefox 40.0.3: must use frame's contentWindow (ref https://bugzilla.mozilla.org/show_bug.cgi?id=1204062)
+	return StyleUtil.getRawCssStyle(this.frame.toDomElement().contentWindow, this._domElement, styleName);
 };
 
 Me.prototype.getRawPosition = function getRawPosition() {

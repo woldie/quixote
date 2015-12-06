@@ -59,6 +59,13 @@ exports.lte = function(actual, expected, message) {
 	proclaim.isTrue(actual <= expected, message + "expected <= '" + expected + "', but got '" + actual + "'");
 };
 
+exports.inRange = function(actual, lowerBoundInclusive, upperBoundExclusive, message) {
+	message = message ? message + ": " : "";
+
+	proclaim.isTrue(actual >= lowerBoundInclusive && actual < upperBoundExclusive, message + "expected >= '" +
+		lowerBoundInclusive + "' and < '" + upperBoundExclusive + "', but got '" + actual + "'");
+}
+
 exports.objEqual = function(actual, expected, message) {
 	message = message ? message + ": " : "";
 	proclaim.isDefined(actual, message + "expected object, but was undefined");
