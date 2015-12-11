@@ -44,8 +44,8 @@ function computeClipLeftPxWidth(domElement, lengthExpr) {
 	return StyleUtil.computeCssPxForLengthInElement(domElement, lengthExpr);
 }
 
-var UNSET_CLIP_STYLES = [ "", "auto", "unset", "initial" ];
-var CLIP_RECT_PATTERN = /rect[\s]*\([\s]*([^\s,]+)[\s,]+([^\s,]+)[\s,]+([^\s,]+)[\s,]+([^\s,]+)[\s]*\)/;
+var UNSET_CLIP_STYLES = [ "", "auto" ];
+var CLIP_RECT_PATTERN = /rect[\s]*\([\s]*([^\s,]+)[\s,]+([^\s,]+)[\s,]+([^\s,]+)[\s,]+([^\s]+)[\s]*\)/;
 
 var ClipStyle;
 
@@ -61,32 +61,52 @@ ClipStyle = {
 	// * rectangle in CSS pixel units, relative to the top-left of domElement's bounding client rect
 	// */
 	normalize : function normalize(parentWindow, domElement) {
-		var clipStyle = StyleUtil.getRawCssStyle(parentWindow, domElement, "clip");
+		// we can assume clip does not apply unless CSS position is "absolute" or "fixed"
+		var positionStyle = StyleUtil.getRawCssStyle(parentWindow, domElement, "position");
+		if(positionStyle !== "absolute" && positionStyle !== "fixed") {
+			return null;
+		}
 
-		if (clipStyle === "") {
+		var computedClipStyle = StyleUtil.getRawCssStyle(parentWindow, domElement, "clip");
+
+		// auto is the same as clip not being set at all
+		if (computedClipStyle === "auto") {
+			return null;
+		}
+
+		if (computedClipStyle === "") {
 			// As a fallback for IE8 for when it can't fork over the original clip css style, try generating a clip rect
 			// using clip components that currentStyle may have.  If we see non-empty strings for all four components, we'll
 			// build out a clip rect expression here ...
 
+			var assignedClipStyle = domElement.style.clip;
 			var clipLeft = StyleUtil.getRawCssStyle(parentWindow, domElement, "clip-left");
 			var clipRight = StyleUtil.getRawCssStyle(parentWindow, domElement, "clip-right");
 			var clipBottom = StyleUtil.getRawCssStyle(parentWindow, domElement, "clip-bottom");
 			var clipTop = StyleUtil.getRawCssStyle(parentWindow, domElement, "clip-top");
 
+			// IE8 workaround:  if computed and assigned clipStyles don't evaluate to anything and top, bottom, left, and
+			// right were "auto", then clip style was not set on the element
+			if (!computedClipStyle && !assignedClipStyle && clipTop === "auto" && clipBottom === "auto" &&
+				clipLeft === "auto" && clipRight === "auto") {
+				return null;
+			}
+
+			// IE8: As long as all four edges have something set, then we can contrive a computed clip style
 			if (clipLeft && clipRight && clipBottom && clipTop) {
-				clipStyle = "rect(" + clipTop + " " + clipRight + " " + clipBottom + " " + clipLeft + ")";
+				computedClipStyle = "rect(" + clipTop + " " + clipRight + " " + clipBottom + " " + clipLeft + ")";
 			}
 		}
 
 		for (var i = 0, ii = UNSET_CLIP_STYLES.length; i < ii; i++) {
-			if (UNSET_CLIP_STYLES[i] === clipStyle) {
+			if (UNSET_CLIP_STYLES[i] === computedClipStyle) {
 				return null;
 			}
 		}
 
-		var matches = clipStyle.match(CLIP_RECT_PATTERN);
+		var matches = computedClipStyle.match(CLIP_RECT_PATTERN);
 		if (!matches) {
-			ensure.unreachable("Unknown clip css style: " + clipStyle);
+			ensure.unreachable("Unknown clip css style: " + computedClipStyle);
 		}
 
 		// values in a clip's rect may be a css length or "auto" which means "clip over the edge's border"

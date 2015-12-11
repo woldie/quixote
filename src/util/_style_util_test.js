@@ -52,10 +52,10 @@ describe("StyleUtil", function() {
 		assert.equal(StyleUtil.computeCssPxForLengthInElement(element, "1em"), 19.2, "em 1:19.2 with px");
 	});
 
-	it("can convert em to px, em is a relative unit, element's em unaffected by its own font-size", function () {
+	it("can convert em to px, em is a relative unit", function () {
 		grandparentElement.setAttribute("style", "font-size: 16px;");  // reset em to 1:16 px
 		parentElement.setAttribute("style", "font-size: 1.2em");  // multiply em to be 1.2 times larger, em 1:19.2 with px
-		element.setAttribute("style", "font-size: 1.2em");  // an element's font size change only affects its descendants
+		element.setAttribute("style", "font-size: 1.2em");  // multiply em to be 1.2 times larger, em 1:23.04 with px
 
 		assert.inRange(StyleUtil.computeCssPxForLengthInElement(element, "1em"), 23.0, 23.1, "em 1:~23.04 with px");
 	});
