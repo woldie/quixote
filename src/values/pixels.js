@@ -3,12 +3,13 @@
 
 var ensure = require("../util/ensure.js");
 var Value = require("./value.js");
+var CssLength = require("./css_length.js");
 
 var Me = module.exports = function Pixels(amount) {
 	ensure.signature(arguments, [ Number ]);
 	this._amount = amount;
 };
-Value.extend(Me);
+CssLength.extend(Me);
 
 Me.create = function create(amount) {
 	return new Me(amount);

@@ -64,7 +64,7 @@ exports.inRange = function(actual, lowerBoundInclusive, upperBoundExclusive, mes
 
 	proclaim.isTrue(actual >= lowerBoundInclusive && actual < upperBoundExclusive, message + "expected >= '" +
 		lowerBoundInclusive + "' and < '" + upperBoundExclusive + "', but got '" + actual + "'");
-}
+};
 
 exports.objEqual = function(actual, expected, message) {
 	message = message ? message + ": " : "";

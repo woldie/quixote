@@ -31,6 +31,7 @@ Me.prototype.diff = function diff(expected) {
 			"  But was:  " + actualValue;
 	}
 	catch (err) {
+		console.log(err);
 		throw new Error("Can't compare " + this + " to " + expected + ": " + err.message);
 	}
 };

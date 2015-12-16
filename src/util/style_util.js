@@ -38,7 +38,7 @@ function computeCssUnitToCssPxRatio(domElement, unit) {
 					parentElement = domElement.parentNode;
 					parentElement.appendChild(testEl);
 				}
-				catch(e) {
+				catch(e1) {
 					throw new Error("appendChild failed");
 				}
 			}

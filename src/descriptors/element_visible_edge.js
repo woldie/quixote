@@ -37,8 +37,18 @@ ElementClipEdge.left = factoryFn(LEFT);
 ElementClipEdge.prototype.value = function value() {
 	ensure.signature(arguments, []);
 
-	var clipPosition = this.getRawClipPosition();
+	// TODO: min/max display, visibility, opacity, overflow, clip, and clip-path (throw if other than
+	// rect detected)  Need a way to express a non-visible edge
 
+	var domElement = this._element.toDomElement();
+	var parentWindow = this._element.frame.toDomElement().contentWindow;
+
+	var clipPosition = getRawClipPosition(parentWindow, domElement);
+	var isVisibilityHidden = StyleUtil.getRawCssStyle(parentWindow, domElement, "visibility") === "hidden";
+	var isDislplayNone = StyleUtil.getRawCssStyle(parentWindow, domElement, "display") === "none";
+	var isOpacityZero = parseFloat(StyleUtil.getRawCssStyle(parentWindow, domElement, "opacity")) === 0;
+
+	// TODO:  rather than throw here, just don't min the visible boundaries
 	if (!clipPosition) {
 		throw new ClipNotAppliedException(ElementClipEdge.prototype.value,
 			"clip " + this._position + " css style not applied to " + this._element);
@@ -62,14 +72,12 @@ function factoryFn(position) {
 	};
 }
 
-ElementClipEdge.prototype.getRawClipPosition = function getRawClipPosition() {
-	ensure.signature(arguments, []);
-
-	var domElement = this._element.toDomElement();
-	var clipRect = ClipStyle.normalize(this._element.frame.toDomElement().contentWindow, domElement);
+function getRawClipPosition(parentWindow, domElement) {
+	var clipRect = ClipStyle.normalize(parentWindow, domElement);
 	var boundingRect = StyleUtil.getRawBoundingRect(domElement);
 
-	var visibleRect = {
+	// return the clip rect adjusted relative to the document top/left
+	var relativeClipRect = {
 		left: boundingRect.left + clipRect.left,
 		right: boundingRect.left + clipRect.right,
 
@@ -77,11 +85,11 @@ ElementClipEdge.prototype.getRawClipPosition = function getRawClipPosition() {
 		bottom: boundingRect.top + clipRect.bottom
 	};
 
-	visibleRect.width = visibleRect.right - visibleRect.left;
-	visibleRect.height = visibleRect.bottom - visibleRect.top;
+	relativeClipRect.width = relativeClipRect.right - relativeClipRect.left;
+	relativeClipRect.height = relativeClipRect.bottom - relativeClipRect.top;
 
-	return visibleRect;
-};
+	return relativeClipRect;
+}
 
 // default module export
 module.exports = ElementClipEdge;
