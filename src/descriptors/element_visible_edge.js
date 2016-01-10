@@ -7,15 +7,18 @@ var Position = require("../values/position.js");
 var RelativePosition = require("./relative_position.js");
 var PositionDescriptor = require("./position_descriptor.js");
 var ElementSize = require("./element_size.js");
+var ElementEdge = require("./element_edge.js");
 var StyleUtil = require("../util/style_util.js");
 var ClipStyle = require("../normalize/clip_style.js");
+var Pixels = require("../values/pixels.js");
+var NoPixels = require("../values/no_pixels.js");
 
 var TOP = "top";
 var RIGHT = "right";
 var BOTTOM = "bottom";
 var LEFT = "left";
 
-function ElementClipEdge(element, position) {
+function ElementVisibleEdge(element, position) {
 	var QElement = require("../q_element.js");      // break circular dependency
 	ensure.signature(arguments, [ QElement, String ]);
 
@@ -27,14 +30,24 @@ function ElementClipEdge(element, position) {
 	this._position = position;
 }
 
-PositionDescriptor.extend(ElementClipEdge);
+PositionDescriptor.extend(ElementVisibleEdge);
 
-ElementClipEdge.top = factoryFn(TOP);
-ElementClipEdge.right = factoryFn(RIGHT);
-ElementClipEdge.bottom = factoryFn(BOTTOM);
-ElementClipEdge.left = factoryFn(LEFT);
+ElementVisibleEdge.top = factoryFn(TOP);
+ElementVisibleEdge.right = factoryFn(RIGHT);
+ElementVisibleEdge.bottom = factoryFn(BOTTOM);
+ElementVisibleEdge.left = factoryFn(LEFT);
 
-ElementClipEdge.prototype.value = function value() {
+var OPPOSITE_EDGES = {};
+OPPOSITE_EDGES[TOP] = BOTTOM;
+OPPOSITE_EDGES[BOTTOM] = TOP;
+OPPOSITE_EDGES[LEFT] = RIGHT;
+OPPOSITE_EDGES[RIGHT] = LEFT;
+
+function notVisibleEdge(positionName) {
+	return Position[(positionName === RIGHT || positionName === LEFT) ? 'x' : 'y'](new NoPixels());
+}
+
+ElementVisibleEdge.prototype.value = function value() {
 	ensure.signature(arguments, []);
 
 	// TODO: min/max display, visibility, opacity, overflow, clip, and clip-path (throw if other than
@@ -43,65 +56,60 @@ ElementClipEdge.prototype.value = function value() {
 	var domElement = this._element.toDomElement();
 	var parentWindow = this._element.frame.toDomElement().contentWindow;
 
-	var clipPosition = getRawClipPosition(parentWindow, domElement);
 	var isVisibilityHidden = StyleUtil.getRawCssStyle(parentWindow, domElement, "visibility") === "hidden";
-	var isDislplayNone = StyleUtil.getRawCssStyle(parentWindow, domElement, "display") === "none";
+	var isDisplayNone = StyleUtil.getRawCssStyle(parentWindow, domElement, "display") === "none";
 	var isOpacityZero = parseFloat(StyleUtil.getRawCssStyle(parentWindow, domElement, "opacity")) === 0;
 
-	// TODO:  rather than throw here, just don't min the visible boundaries
-	if (!clipPosition) {
-		throw new ClipNotAppliedException(ElementClipEdge.prototype.value,
-			"clip " + this._position + " css style not applied to " + this._element);
+	if(isVisibilityHidden || isDisplayNone || isOpacityZero) {
+		return notVisibleEdge(this._position);
 	}
 
-	var edge = clipPosition[this._position];
-	var scroll = this._element.frame.getRawScrollPosition();
+	var clipEdgeOffsets = ClipStyle.normalize(parentWindow, domElement);
+	var clipEdgeOffset = clipEdgeOffsets[this._position].toPixels();
+	var elementEdgePosition = this._element[this._position].value().toPixels();
 
-	if (this._position === RIGHT || this._position === LEFT) return Position.x(edge + scroll.x);
-	else return Position.y(edge + scroll.y);
+	// We default the clip edge that is returned to the element's edge position, in Pixels
+	var elementVisibleEdgePosition = elementEdgePosition;
+
+	// is the clipEdge not is defined as an instance of NoPixels?
+	if(!(clipEdgeOffset instanceof NoPixels)) {
+		var elementEdgeOppositePosition = this._element[OPPOSITE_EDGES[this._position]].value().toPixels();
+
+		// if the element is fully clipped in x or y, then the edge is not visible
+		if(clipEdgeOffsets.width.toPixels().compare(Pixels.ZERO) <= 0 || clipEdgeOffsets.height.toPixels().compare(Pixels.ZERO) <= 0) {
+			return notVisibleEdge(this._position);
+		}
+
+		// when clip style is active, then clamp the visible edge between the clip rect edge and the element edges
+		var edgePlusClipOffset;
+		switch(this._position) {
+			case LEFT:
+			case TOP:
+				edgePlusClipOffset = elementEdgePosition.plus(clipEdgeOffset);
+				elementVisibleEdgePosition = Pixels.min(Pixels.max(edgePlusClipOffset, elementEdgePosition), elementEdgeOppositePosition);
+				break;
+			case RIGHT:
+			case BOTTOM:
+				edgePlusClipOffset = elementEdgeOppositePosition.plus(clipEdgeOffset);
+				elementVisibleEdgePosition = Pixels.max(Pixels.min(edgePlusClipOffset, elementEdgePosition), elementEdgeOppositePosition);
+				break;
+		}
+	}
+
+	if (this._position === RIGHT || this._position === LEFT) return Position.x(elementVisibleEdgePosition);
+	else return Position.y(elementVisibleEdgePosition);
 };
 
-ElementClipEdge.prototype.toString = function toString() {
+ElementVisibleEdge.prototype.toString = function toString() {
 	ensure.signature(arguments, []);
 	return "clip " + this._position + " edge of " + this._element;
 };
 
 function factoryFn(position) {
 	return function factory(element) {
-		return new ElementClipEdge(element, position);
+		return new ElementVisibleEdge(element, position);
 	};
-}
-
-function getRawClipPosition(parentWindow, domElement) {
-	var clipRect = ClipStyle.normalize(parentWindow, domElement);
-	var boundingRect = StyleUtil.getRawBoundingRect(domElement);
-
-	// return the clip rect adjusted relative to the document top/left
-	var relativeClipRect = {
-		left: boundingRect.left + clipRect.left,
-		right: boundingRect.left + clipRect.right,
-
-		top: boundingRect.top + clipRect.top,
-		bottom: boundingRect.top + clipRect.bottom
-	};
-
-	relativeClipRect.width = relativeClipRect.right - relativeClipRect.left;
-	relativeClipRect.height = relativeClipRect.bottom - relativeClipRect.top;
-
-	return relativeClipRect;
 }
 
 // default module export
-module.exports = ElementClipEdge;
-
-function ClipNotAppliedException(fnToRemoveFromStackTrace, message) {
-	if (Error.captureStackTrace) Error.captureStackTrace(this, fnToRemoveFromStackTrace);
-	else this.stack = (new Error()).stack;
-	this.message = message;
-}
-
-ClipNotAppliedException.prototype = shim.Object.create(Error.prototype);
-ClipNotAppliedException.prototype.constructor = ClipNotAppliedException;
-ClipNotAppliedException.prototype.name = "ClipNotAppliedException";
-
-exports.ClipNodeAppliedException = ClipNotAppliedException;
+module.exports = ElementVisibleEdge;

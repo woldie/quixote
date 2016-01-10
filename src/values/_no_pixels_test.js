@@ -17,11 +17,11 @@ describe("NoPixels", function() {
 	});
 
 	it("fails with expected type errors if you try to mix Pixel and NoPixel instances in operations", function() {
-		assert.exception(function() { goodPixels.plus(noPixels); });
-		assert.exception(function() { noPixels.plus(goodPixels); });
-		assert.exception(function() { goodPixels.minus(noPixels); });
-		assert.exception(function() { noPixels.minus(goodPixels); });
-		assert.exception(function() { goodPixels.average(noPixels); });
-		assert.exception(function() { noPixels.average(goodPixels); });
+		assert.exception(function() { goodPixels.plus(noPixels); }, /Pixels isn.t compatible with NoPixels/);
+		assert.exception(function() { noPixels.plus(goodPixels); }, /NoPixels isn.t compatible with Pixels/);
+		assert.exception(function() { goodPixels.minus(noPixels); }, /Pixels isn.t compatible with NoPixels/);
+		assert.exception(function() { noPixels.minus(goodPixels); }, /NoPixels isn.t compatible with Pixels/);
+		assert.exception(function() { goodPixels.average(noPixels); }, /Pixels isn.t compatible with NoPixels/);
+		assert.exception(function() { noPixels.average(goodPixels); }, /NoPixels isn.t compatible with Pixels/);
 	});
 });

@@ -6,6 +6,7 @@ var ensure = require("../util/ensure.js");
 var oop = require("../util/oop.js");
 var Descriptor = require("./descriptor.js");
 var Position = require("../values/position.js");
+var CssLength = require("../values/css_length.js");
 
 function RelativePosition() {
 	return require("./relative_position.js");   	// break circular dependency
@@ -35,9 +36,9 @@ Me.prototype.minus = function minus(amount) {
 };
 
 Me.prototype.convert = function convert(arg, type) {
-	if (type !== "number") return;
-
-	return this._pdbc.dimension === X_DIMENSION ? Position.x(arg) : Position.y(arg);
+	if (type === "number" || (type === "object" && arg instanceof CssLength)) {
+		return this._pdbc.dimension === X_DIMENSION ? Position.x(arg) : Position.y(arg);
+	}
 };
 
 function factoryFn(dimension) {

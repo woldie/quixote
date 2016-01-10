@@ -122,7 +122,9 @@ StyleUtil = {
 
 		// convert the parsed number part of the lengthExpr to px by multiplying it by the computed ratio of lengthExpr's
 		// css unit to css px units.
-		return parseFloat(matches[1]) * computeCssUnitToCssPxRatio(domElement, matches[2]);
+		var result = parseFloat(matches[1]) * computeCssUnitToCssPxRatio(domElement, matches[2]);
+
+		return result;
 	}
 };
 

@@ -3,8 +3,11 @@
 
 // normalized clip CSS style
 
-var ensure = require("../util/ensure");
-var StyleUtil = require("../util/style_util");
+var ensure = require("../util/ensure.js");
+var StyleUtil = require("../util/style_util.js");
+var Size = require("../values/size.js");
+var Position = require("../values/position.js");
+var NoPixels = require("../values/no_pixels.js");
 
 function computeClipTopPxHeight(domElement, lengthExpr) {
 	if(lengthExpr === "auto") {
@@ -49,29 +52,42 @@ var CLIP_RECT_PATTERN = /rect[\s]*\([\s]*([^\s,]+)[\s,]+([^\s,]+)[\s,]+([^\s,]+)
 
 var ClipStyle;
 
+function noClipStyles() {
+	return {
+		top: Position.y(NoPixels.create()),
+		bottom: Position.y(NoPixels.create()),
+		height: Size.create(NoPixels.create()),
+
+		left: Position.x(NoPixels.create()),
+		right: Position.x(NoPixels.create()),
+		width: Size.create(NoPixels.create())
+	};
+}
+
 ClipStyle = {
 	// **
 	// * Compute the normalized edges of the domElement's clip rectangle in CSS pixel units
 	// *
 	// * <p>The clip rectangle is relative to the top-left of the domElement's bounding client rectangle
+	// * rather than the page top-left origin
 	// *
 	// * @param {Window} parentWindow window that domElement belongs to
 	// * @param {(Element|Node)} domElement the element to compute the normalized clip rectangle for
-	// * @returns {{top: number, bottom: number, height: number, left: number, right: number, width: number}} clip
+	// * @returns {{top: CssLength, bottom: CssLength, height: Size, left: CssLength, right: CssLength, width: Size}} clip
 	// * rectangle in CSS pixel units, relative to the top-left of domElement's bounding client rect
 	// */
 	normalize : function normalize(parentWindow, domElement) {
 		// we can assume clip does not apply unless CSS position is "absolute" or "fixed"
 		var positionStyle = StyleUtil.getRawCssStyle(parentWindow, domElement, "position");
 		if(positionStyle !== "absolute" && positionStyle !== "fixed") {
-			return null;
+			return noClipStyles();
 		}
 
 		var computedClipStyle = StyleUtil.getRawCssStyle(parentWindow, domElement, "clip");
 
 		// auto is the same as clip not being set at all
 		if (computedClipStyle === "auto") {
-			return null;
+			return noClipStyles();
 		}
 
 		if (computedClipStyle === "") {
@@ -89,7 +105,7 @@ ClipStyle = {
 			// right were "auto", then clip style was not set on the element
 			if (!computedClipStyle && !assignedClipStyle && clipTop === "auto" && clipBottom === "auto" &&
 				clipLeft === "auto" && clipRight === "auto") {
-				return null;
+				return noClipStyles();
 			}
 
 			// IE8: As long as all four edges have something set, then we can contrive a computed clip style
@@ -100,7 +116,7 @@ ClipStyle = {
 
 		for (var i = 0, ii = UNSET_CLIP_STYLES.length; i < ii; i++) {
 			if (UNSET_CLIP_STYLES[i] === computedClipStyle) {
-				return null;
+				return noClipStyles();
 			}
 		}
 
@@ -109,20 +125,20 @@ ClipStyle = {
 			ensure.unreachable("Unknown clip css style: " + computedClipStyle);
 		}
 
-		// values in a clip's rect may be a css length or "auto" which means "clip over the edge's border"
+		// values in a clip's rect may be a css length or "auto" which means "clip at the element's border's edge"
 		var clipTopPx = computeClipTopPxHeight(domElement, matches[1]);
 		var clipRightPx = computeClipRightPxWidth(domElement, matches[2]);
 		var clipBottomPx = computeClipBottomPxHeight(domElement, matches[3]);
 		var clipLeftPx = computeClipLeftPxWidth(domElement, matches[4]);
 
 		return {
-			top: clipTopPx,
-			bottom: clipBottomPx,
-			height: clipBottomPx - clipTopPx,
+			top: Position.y(clipTopPx),
+			bottom: Position.y(clipBottomPx),
+			height: Size.create(clipBottomPx - clipTopPx),
 
-			left: clipLeftPx,
-			right: clipRightPx,
-			width: clipRightPx - clipLeftPx
+			left: Position.x(clipLeftPx),
+			right: Position.x(clipRightPx),
+			width: Size.create(clipRightPx - clipLeftPx)
 		};
 	}
 };

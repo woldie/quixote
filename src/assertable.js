@@ -59,9 +59,17 @@ Me.prototype.diffDescriptor = function diffDescriptor(result, key, descriptor, e
 		for (var i = 0; i < childKeys.length; i++) {
 			childKey = childKeys[i];
 
-			// recurse to diff all the child nodes of the object set as the expected value
+			ensure.that(
+				descriptor[childKey] !== undefined,
+				this + "'s " + key + " doesn't have a nested property named '" + childKey + "'. Did you misspell it?"
+			);
+
+			// recurse to diff all the child nodes of the object set as child nodes of the expected value
 			this.diffDescriptor(result, childKey, descriptor[childKey], expectedValue);
 		}
+	}
+	else {
+		ensure.unreachable("cannot diff: " + key + " on " + descriptor + " for " + expectedValue);
 	}
 
 };

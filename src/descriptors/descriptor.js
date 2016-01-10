@@ -4,6 +4,7 @@
 var ensure = require("../util/ensure.js");
 var oop = require("../util/oop.js");
 var Value = require("../values/value.js");
+var shim = require("../util/shim.js");
 
 var Me = module.exports = function Descriptor() {
 	ensure.unreachable("Descriptor is abstract and should not be constructed directly.");
@@ -32,7 +33,7 @@ Me.prototype.diff = function diff(expected) {
 	}
 	catch (err) {
 		console.log(err);
-		throw new Error("Can't compare " + this + " to " + expected + ": " + err.message);
+				throw new Error("Can't compare " + this + " to " + expected + ": " + err.message);
 	}
 };
 

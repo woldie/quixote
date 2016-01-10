@@ -15,6 +15,8 @@ Me.create = function create(amount) {
 	return new Me(amount);
 };
 
+Me.ZERO = Me.create(0);
+
 Me.prototype.compatibility = function compatibility() {
 	return [ Me ];
 };
@@ -42,6 +44,18 @@ Me.prototype.compare = Value.safe(function compare(operand) {
 	if (Math.abs(difference) <= 0.5) return 0;
 	else return difference;
 });
+
+Me.max = function(l, r) {
+	ensure.signature(arguments, [ Me, Me ]);
+
+	return l.compare(r) >= 0 ? l : r;
+};
+
+Me.min = function(l, r) {
+	ensure.signature(arguments, [ Me, Me ]);
+
+	return l.compare(r) <= 0 ? l : r;
+};
 
 Me.prototype.diff = Value.safe(function diff(expected) {
 	if (this.compare(expected) === 0) return "";

@@ -3,8 +3,8 @@
 
 var ensure = require("./util/ensure.js");
 var ElementEdge = require("./descriptors/element_edge.js");
-var ElementClipEdge = require("./descriptors/element_visible_edge.js");
-var ElementClipSize = require("./descriptors/element_visible_size.js");
+var ElementVisibleEdge = require("./descriptors/element_visible_edge.js");
+var ElementVisibleSize = require("./descriptors/element_visible_size.js");
 var Center = require("./descriptors/center.js");
 var ElementSize = require("./descriptors/element_size.js");
 var Assertable = require("./assertable.js");
@@ -31,16 +31,17 @@ var Me = module.exports = function QElement(domElement, frame, nickname) {
 	this.width = ElementSize.x(this);
 	this.height = ElementSize.y(this);
 
-	this.clip = {};  // ElementClipDisabled descriptor rather than plain old object here?
+	this.visible = {
+		top: ElementVisibleEdge.top(this),
+		right: ElementVisibleEdge.right(this),
+		bottom: ElementVisibleEdge.bottom(this),
+		left: ElementVisibleEdge.left(this)
+	};
 
-	this.clip.top = ElementClipEdge.top(this);
-	this.clip.right = ElementClipEdge.right(this);
-	this.clip.bottom = ElementClipEdge.bottom(this);
-	this.clip.left = ElementClipEdge.left(this);
-	this.clip.center = Center.x(this.clip.left, this.clip.right, "center of clip for '" + nickname + "'");
-	this.clip.middle = Center.y(this.clip.top, this.clip.bottom, "middle of clip for '" + nickname + "'");
-	this.clip.width = ElementClipSize.x(this.clip.left, this.clip.right, "width of clip for '" + nickname + "'");
-	this.clip.height = ElementClipSize.y(this.clip.top, this.clip.bottom, "height of clip for '" + nickname + "'");
+	this.visible.center = Center.x(this.visible.left, this.visible.right, "center of visible for '" + nickname + "'");
+	this.visible.middle = Center.y(this.visible.top, this.visible.bottom, "middle of visible for '" + nickname + "'");
+	this.visible.width = ElementVisibleSize.x(this.visible.left, this.visible.right, "width of visible for '" + nickname + "'");
+	this.visible.height = ElementVisibleSize.y(this.visible.top, this.visible.bottom, "height of visible for '" + nickname + "'");
 };
 Assertable.extend(Me);
 

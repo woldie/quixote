@@ -4,6 +4,7 @@
 var assert = require("./util/assert.js");
 var Assertable = require("./assertable.js");
 var reset = require("./__reset.js");
+var NoPixels = require("./values/no_pixels.js");
 
 describe("Assertable abstract base class", function() {
 
@@ -76,7 +77,7 @@ describe("Assertable abstract base class", function() {
 		}, "a message:\n" + diff + "\n", "different, with a message");
 	});
 
-	describe("clip", function() {
+	describe("nested visible descriptor assertions", function() {
 		it("supports assertions in nested expected with clip object", function() {
 			var domElement = element.toDomElement();
 
@@ -95,18 +96,18 @@ describe("Assertable abstract base class", function() {
 			].join(";"));
 
 			element.assert({
-				clip: {
-					top: 5 + 10 + 35,       // clip top + top + margin-top
-					bottom: 45 + 10 + 35,   // clip bottom + top + margin-top
-					left: 20 + 20 + 14,     // clip left + left + margin-left
-					right: 120 + 20 + 14,   // clip right + left + margin-left
+				visible: {
+					top: 5 + 10 + 35,       // visible top + top + margin-top
+					bottom: 45 + 10 + 35,   // visible bottom + top + margin-top
+					left: 20 + 20 + 14,     // visible left + left + margin-left
+					right: 120 + 20 + 14,   // visible right + left + margin-left
 					width: 100,
 					height: 40
 				}
 			}, "nested expected clip object works");
 		});
 
-		it("can compare ElementClipEdge against like-directioned ElementEdges", function() {
+		it("can compare ElementVisibleEdge against like-directioned ElementEdges", function() {
 			// bottom of two should be 100
 			var two = frame.add("<div style='position: absolute; top: 25px; margin-top: 35px; height: 40px;'>two</div>");
 
@@ -122,13 +123,13 @@ describe("Assertable abstract base class", function() {
 			].join(";"));
 
 			element.assert({
-				clip: {
+				visible: {
 					top: two.bottom
 				}
-			}, "element's clipTop equals the bottom of two");
+			}, "element's visibleTop equals the bottom of two");
 		});
 
-		it("will throw a ClipNotAppliedException when asserting clip on an element that is not position: absolute or fixed", function() {
+		it("clip will not affect visible rect on an element that is not position: absolute or fixed", function() {
 			var domElement = element.toDomElement();
 
 			domElement.setAttribute("style", [
@@ -141,20 +142,14 @@ describe("Assertable abstract base class", function() {
 				"clip: rect(5px, 120px, 45px, 20px)"
 			].join(";"));
 
-			var ClipNotAppliedException = require("./descriptors/element_visible_edge").ClipNotAppliedException;
-			assert.exception(
-				function() {
-					element.assert({
-						clip: {
-							top: 25       // clip top + top
-						}
-					});
-				},
-				ClipNotAppliedException,
-				"element.assert will fail with a ClipNotAppliedException because a clip style could not be computed");
+			element.assert({
+				visible: {
+					top: 10       // just bounding box top
+				}
+			});
 		});
 
-		it("will throw a ClipNotAppliedException when asserting clip on an element that has clip: auto", function() {
+		it("will produce NoPixels CssLengths when asserting visible on an element that has clip: auto", function() {
 			var domElement = element.toDomElement();
 
 			domElement.setAttribute("style", [
@@ -166,17 +161,12 @@ describe("Assertable abstract base class", function() {
 				"clip: auto"
 			].join(";"));
 
-			var ClipNotAppliedException = require("./descriptors/element_visible_edge").ClipNotAppliedException;
-			assert.exception(
-				function() {
-					element.assert({
-						clip: {
-							top: 25       // clip top + top
-						}
-					});
-				},
-				ClipNotAppliedException,
-				"element.assert will fail with a ClipNotAppliedException because a clip style was not applied to element");
+			element.assert({
+				visible: {
+					top: 10,     // visible top == bounding box top
+					height: 60   // visible width == bounding box width
+				}
+			}, "clip: auto does not impact visible rect calcs");
 		});
 	});
 

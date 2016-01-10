@@ -5,19 +5,20 @@ var assert = require("../util/assert.js");
 var reset = require("../__reset.js");
 var quixote = require("../quixote.js");
 var SizeDescriptor = require("./size_descriptor.js");
-var ElementClipSize = require("./element_visible_size.js");
-var ElementClipEdge = require("./element_visible_edge.js");
+var ElementVisibleSize = require("./element_visible_size.js");
+var ElementVisibleEdge = require("./element_visible_edge.js");
 var Size = require("../values/size.js");
+var NoPixels = require("../values/no_pixels.js");
 
-describe("ElementClipSize", function() {
+describe("ElementVisibleSize", function() {
 
 	var element;
-	var clipTop;
-	var clipRight;
-	var clipBottom;
-	var clipLeft;
-	var clipWidth;
-	var clipHeight;
+	var visibleTop;
+	var visibleRight;
+	var visibleBottom;
+	var visibleLeft;
+	var visibleWidth;
+	var visibleHeight;
 
 	beforeEach(function() {
 		var frame = reset.frame;
@@ -26,145 +27,124 @@ describe("ElementClipSize", function() {
 		);
 
 		element = frame.get("#element");
-		clipTop =  ElementClipEdge.top(element);
-		clipRight = ElementClipEdge.right(element);
-		clipBottom = ElementClipEdge.bottom(element);
-		clipLeft = ElementClipEdge.left(element);
+		visibleTop =  ElementVisibleEdge.top(element);
+		visibleRight = ElementVisibleEdge.right(element);
+		visibleBottom = ElementVisibleEdge.bottom(element);
+		visibleLeft = ElementVisibleEdge.left(element);
 
-		clipWidth = ElementClipSize.x(clipLeft, clipRight, "clip width for #element");
-		clipHeight = ElementClipSize.y(clipTop, clipBottom, "clip height for #element");
+		visibleWidth = ElementVisibleSize.x(visibleLeft, visibleRight, "visible width for #element");
+		visibleHeight = ElementVisibleSize.y(visibleTop, visibleBottom, "visible height for #element");
 	});
 
 	it("is a size descriptor", function() {
-		assert.implements(clipWidth, SizeDescriptor);
+		assert.implements(visibleWidth, SizeDescriptor);
 	});
 
-	it("auto edges resolve to width/height values of element border box", function() {
-		var WIDTH = 130;
-		var HEIGHT = 60;
-
-		var domElement = element.toDomElement();
-		domElement.setAttribute("style", [
-			"position: absolute",
-			"left: 20px",
-			"top: 20px",
-			"width: 130px",
-			"height: 60px",
-			"clip: rect(auto auto auto auto)",   // legacy ie clip format
-			"clip: rect(auto, auto, auto, auto)" // modern browser clip format
-		].join(";"));
-
-		assert.objEqual(clipWidth.value(), Size.create(WIDTH), "width");
-		assert.objEqual(clipHeight.value(), Size.create(HEIGHT), "height");
+	it("will return _description from toString", function() {
+		assert.equal(visibleWidth.toString(), visibleWidth._description);
+		assert.equal(visibleHeight.toString(), visibleHeight._description);
 	});
 
-	it("auto edges include border and padding, but not margin", function() {
-		var WIDTH = 130;
-		var HEIGHT = 60;
+	describe("clip style-related tests", function() {
+		it("can compute visible when clip is either not set/or set to auto", function() {
+			var WIDTH = 130;
+			var HEIGHT = 60;
 
-		var domElement = element.toDomElement();
+			var domElement = element.toDomElement();
+			domElement.setAttribute("style", [
+				"position: absolute",
+				"left: 20px",
+				"top: 20px",
+				"width: 130px",
+				"height: 60px",
+				"clip: auto"
+			].join(";"));
 
-		domElement.setAttribute("style", [
-			"position: absolute",
-			"left: 20px",
-			"top: 20px",
-			"width: 130px",
-			"height: 60px",
-			"border: solid 4px red",
-			"margin: 16px",
-			"padding: 8px",
-			"box-sizing: content-box",
-			"clip: rect(auto auto auto auto)",   // legacy ie clip format
-			"clip: rect(auto, auto, auto, auto)" // modern browser clip format
-		].join(";"));
+			assert.objEqual(visibleWidth.value(), Size.create(WIDTH), "width");
+			assert.objEqual(visibleHeight.value(), Size.create(HEIGHT), "height");
+		});
 
-		assert.objEqual(clipWidth.value(), Size.create(WIDTH + (4*2) + (8*2)), "width");
-		assert.objEqual(clipHeight.value(), Size.create(HEIGHT + (4*2) + (8*2)), "height");
+		it("will ignore auto clip edges when computing visible rect", function() {
+			var WIDTH = 130;
+			var HEIGHT = 60;
+
+			var domElement = element.toDomElement();
+
+			domElement.setAttribute("style", [
+				"position: absolute",
+				"left: 20px",
+				"top: 20px",
+				"width: 130px",
+				"height: 60px",
+				"border: solid 4px red",
+				"margin: 16px",
+				"padding: 8px",
+				"box-sizing: content-box",
+				"clip: rect(auto auto auto auto)",   // legacy ie clip format
+				"clip: rect(auto, auto, auto, auto)" // modern browser clip format
+			].join(";"));
+
+			assert.objEqual(visibleWidth.value(), Size.create(WIDTH + (4*2) + (8*2)), "width includes padding and border");
+			assert.objEqual(visibleHeight.value(), Size.create(HEIGHT + (4*2) + (8*2)), "height includes padding and border");
+		});
+
+		it("will clamp the element visible width/height when the clip rect goes inside the border box", function() {
+			var domElement = element.toDomElement();
+
+			domElement.setAttribute("style", [
+				"position: absolute",
+				"left: 20px",
+				"top: 20px",
+				"width: 25px",
+				"height: 40px",
+				"border: solid 4px red",
+				"margin: 16px",
+				"padding: 8px",
+				"box-sizing: content-box",
+				"clip: rect(15px 41px 30px 18px)",   // legacy ie clip format
+				"clip: rect(15px, 41px, 30px, 18px)" // modern browser clip format
+			].join(";"));
+
+			assert.objEqual(visibleWidth.value(), Size.create(41 - 18), "width");
+			assert.objEqual(visibleHeight.value(), Size.create(30 - 15), "height");
+		});
+
+		it("will go to NoPixels size when width or height are completely clipped", function() {
+			var domElement = element.toDomElement();
+
+			domElement.setAttribute("style", [
+				"position: absolute",
+				"width: 15px",
+				"height: 20px",
+				"border: solid 4px red",
+				"margin: 16px",
+				"padding: 8px",
+				"box-sizing: content-box",
+				"clip: rect(0 0 0 0)",   // legacy ie clip format
+				"clip: rect(0, 0, 0, 0)" // modern browser clip format
+			].join(";"));
+
+			assert.objEqual(visibleWidth.value().toPixels(), NoPixels.create(), "no pixel width");
+			assert.objEqual(visibleHeight.value().toPixels(), NoPixels.create(), "no pixel height");
+		});
+
+		it("will clamp visible width and height to the element edge when the clip rect goes outside the element bounds", function() {
+			var domElement = element.toDomElement();
+
+			domElement.setAttribute("style", [
+				"position: absolute",
+				"width: 15px",
+				"height: 20px",
+				"border: solid 3px red",
+				"margin: 16px",
+				"padding: 8px",
+				"box-sizing: content-box",
+				"clip: rect(-50px 50px 50px -50px)",   // top: -50, right: 50, bottom: 50, left: -50
+				"clip: rect(-50px, 50px, 50px, -50px)"
+			].join(";"));
+
+			assert.objEqual(visibleWidth.value(), Size.create(15 + 6 + 16), "element visible width == element width, unaffected by clip outside element borders");
+			assert.objEqual(visibleHeight.value(), Size.create(20 + 6 + 16), "element visible width == element width, unaffected by clip outside element borders");
+		});
 	});
-
-	it("can compute the correct width when the clip rect is inside the border box", function() {
-		var domElement = element.toDomElement();
-
-		domElement.setAttribute("style", [
-			"position: absolute",
-			"left: 20px",
-			"top: 20px",
-			"width: 25px",
-			"height: 40px",
-			"border: solid 4px red",
-			"margin: 16px",
-			"padding: 8px",
-			"box-sizing: content-box",
-			"clip: rect(15px 41px 30px 18px)",   // legacy ie clip format
-			"clip: rect(15px, 41px, 30px, 18px)" // modern browser clip format
-		].join(";"));
-
-		assert.objEqual(clipWidth.value(), Size.create(41 - 18), "width");
-		assert.objEqual(clipHeight.value(), Size.create(30 - 15), "height");
-	});
-
-	it("can compute the correct width/height when the clip rect goes outside the border box", function() {
-		var domElement = element.toDomElement();
-
-		domElement.setAttribute("style", [
-			"position: absolute",
-			"left: 20px",
-			"top: 20px",
-			"width: 15px",
-			"height: 20px",
-			"border: solid 4px red",
-			"margin: 16px",
-			"padding: 8px",
-			"box-sizing: content-box",
-			"clip: rect(-20px 50px 65px -10px)",   // legacy ie clip format
-			"clip: rect(-20px, 50px, 65px, -10px)" // modern browser clip format
-		].join(";"));
-
-		assert.objEqual(clipWidth.value(), Size.create(50 - (-10)), "width");
-		assert.objEqual(clipHeight.value(), Size.create(65 - (-20)), "height");
-	});
-
-	it("width and height will go to zero with the element is completely clipped", function() {
-		var domElement = element.toDomElement();
-
-		domElement.setAttribute("style", [
-			"position: absolute",
-			"width: 15px",
-			"height: 20px",
-			"border: solid 4px red",
-			"margin: 16px",
-			"padding: 8px",
-			"box-sizing: content-box",
-			"clip: rect(0 0 0 0)",   // legacy ie clip format
-			"clip: rect(0, 0, 0, 0)" // modern browser clip format
-		].join(";"));
-
-		assert.objEqual(clipWidth.value(), Size.create(0), "zero width");
-		assert.objEqual(clipHeight.value(), Size.create(0), "zero height");
-	});
-
-	it("width and height will go negative if the clip rect says to", function() {
-		var domElement = element.toDomElement();
-
-		domElement.setAttribute("style", [
-			"position: absolute",
-			"width: 15px",
-			"height: 20px",
-			"border: solid 4px red",
-			"margin: 16px",
-			"padding: 8px",
-			"box-sizing: content-box",
-			"clip: rect(0px -50px -50px 0px)",   // top: 0, right: -50, bottom: -50, left: 0
-			"clip: rect(0px, -50px, -50px, 0px)"
-		].join(";"));
-
-		assert.objEqual(clipWidth.value(), Size.create(-50), "negative width");
-		assert.objEqual(clipHeight.value(), Size.create(-50), "negative height");
-	});
-
-	it("toString returns _description", function() {
-		assert.equal(clipWidth.toString(), clipWidth._description);
-		assert.equal(clipHeight.toString(), clipHeight._description);
-	});
-
 });

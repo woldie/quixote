@@ -7,11 +7,13 @@ var SizeDescriptor = require("./size_descriptor.js");
 var Size = require("../values/size.js");
 var RelativeSize = require("./relative_size.js");
 var SizeMultiple = require("./size_multiple.js");
+var Pixels = require("../values/pixels.js");
+var NoPixels = require("../values/no_pixels.js");
 
 var X_DIMENSION = "width";
 var Y_DIMENSION = "height";
 
-var Me = module.exports = function ElementClipSize(dimension, position1, position2, description) {
+var Me = module.exports = function ElementVisibleSize(dimension, position1, position2, description) {
 	var QElement = require("../q_element.js");    // break circular dependency
 	ensure.signature(arguments, [ String, PositionDescriptor, PositionDescriptor, String ]);
 	ensure.that(dimension === X_DIMENSION || dimension === Y_DIMENSION, "Unrecognized dimension: " + dimension);
@@ -28,7 +30,14 @@ Me.y = factoryFn(Y_DIMENSION);
 
 Me.prototype.value = function value() {
 	ensure.signature(arguments, []);
-	return this._position2.value().minus(this._position1.value());
+
+	if(this._position1.value().toPixels() instanceof NoPixels || this._position2.value().toPixels() instanceof NoPixels) {
+		return Size.create(NoPixels.create());
+	}
+
+	var difference = this._position2.minus(this._position1).value().toPixels();
+
+	return Size.create(Pixels.max(difference, Pixels.ZERO));
 };
 
 Me.prototype.toString = function toString() {
